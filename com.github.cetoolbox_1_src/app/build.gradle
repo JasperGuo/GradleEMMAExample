@@ -1,0 +1,50 @@
+apply plugin: 'com.android.application'
+android {
+    compileSdkVersion 18
+    buildToolsVersion "27.0.3"
+
+    defaultConfig {
+        applicationId "com.github.cetoolbox"
+        minSdkVersion 10
+        targetSdkVersion 17
+        multiDexEnabled true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+        }
+        debug {
+            debuggable false
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_6
+        targetCompatibility JavaVersion.VERSION_1_6
+    }
+}
+
+dependencies {
+    implementation files(android.getSdkDirectory().getAbsolutePath() + '/tools/lib/emma.jar')
+}
+
+// Task to perform instrumentation
+task injectEmma {
+    println "[Task] I: inject emma"
+    android.applicationVariants.all {variant ->
+        variant.javaCompiler.doLast{
+            def coverageFile = file("out/coverage.em")
+            if (coverageFile.exists()){
+                coverageFile.delete()
+            }
+            println "[Task] I: Destination Dir: " + variant.javaCompiler.destinationDir.getAbsolutePath()
+            javaexec {
+                main 'emma'
+                args 'instr', '-ip', variant.javaCompiler.destinationDir, '-m', 'overwrite', '-out', 'out/coverage.em'
+                classpath files(new File(android.getSdkDirectory(), 'tools/lib/emma.jar'))
+            }
+        }
+    }
+    println "[Task] I: Inject successfully"
+}
